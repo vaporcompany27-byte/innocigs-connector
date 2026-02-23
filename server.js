@@ -17,7 +17,7 @@ app.post("/webhooks/orders-create", (req, res) => {
   const hmacHeader = req.get("X-Shopify-Hmac-Sha256") || "";
   const rawBody = JSON.stringify(req.body);
 
-  const digest = crypto
+  const digest = crypto3
     .createHmac("sha256", secret)
     .update(rawBody, "utf8")
     .digest("base64");
@@ -30,4 +30,4 @@ app.post("/webhooks/orders-create", (req, res) => {
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});
+});$
