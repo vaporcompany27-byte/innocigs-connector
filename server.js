@@ -1,4 +1,5 @@
 import express from "express";
+import crypto from "crypto";
 
 const app = express();
 app.use(express.json({ type: "*/*" }));
@@ -10,10 +11,22 @@ app.get("/health", (req, res) => {
 
 // Shopify Webhook Endpoint
 app.post("/webhooks/orders-create", (req, res) => {
-  console.log("New Shopify Order:", req.body);
-  res.status(200).send("Webhook received");
-});
+  const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
+  if (!secret) return res.status(500).send("Missing SHOPIFY_WEBHOOK_SECRET");
 
+  const hmacHeader = req.get("X-Shopify-Hmac-Sha256") || "";
+  const rawBody = JSON.stringify(req.body);
+
+  const digest = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody, "utf8")
+    .digest("base64");
+
+  if (digest !== hmacHeader) return res.status(401).send("Invalid HMAC");
+
+  console.log("✅ Verified Shopify Order:", req.body);
+  res.status(200).send("ok");
+});
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
