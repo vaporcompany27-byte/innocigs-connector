@@ -8,8 +8,14 @@ app.use(express.json({ type: "*/*" }));
 app.get("/health", (req, res) => {
   res.status(200).json({ ok: true, service: "innocigs-connector" });
 });
+// Shopify Auth Route
+app.get("/auth", (req, res) => {
+  res.status(200).send("auth route ok");
+});
 
-// Shopify Webhook Endpoint
+app.get("/auth/callback", (req, res) => {
+  res.status(200).send("callback route ok");
+});// Shopify Webhook Endpoint
 app.post("/webhooks/orders-create", (req, res) => {
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
   if (!secret) return res.status(500).send("Missing SHOPIFY_WEBHOOK_SECRET");
@@ -30,4 +36,4 @@ app.post("/webhooks/orders-create", (req, res) => {
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});$
+});
