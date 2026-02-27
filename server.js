@@ -12,7 +12,9 @@ app.get("/health", (req, res) => {
 app.get("/auth", (req, res) => {
   res.status(200).send("auth route ok");
 });
-
+app.get("/", (req, res) => {
+  res.status(200).send("InnoCigs Connector is running 🚀");
+});
 app.get("/auth/callback", (req, res) => {
   res.status(200).send("callback route ok");
 });// Shopify Webhook Endpoint
