@@ -119,10 +119,7 @@ app.get("/auth/callback", async (req, res) => {
 app.get("/", (req, res) => {
   res.status(200).send("InnoCigs Connector is running 🚀");
 });
-// Shopify Webhook Endpoint
 
-  res.status(200).send("OK");
-});
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
