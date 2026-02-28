@@ -19,7 +19,7 @@ app.get("/", (req, res) => {
   res.status(200).send("InnoCigs Connector is running 🚀");
 });
 // Shopify Webhook Endpoint (MUSS VOR express.json() stehen!)
-app.post("/webhooks/orders-create", express.raw({ type: "application/json" }), (req, res) => {
+app.post("/webhooks/orders-create", express.raw({ type: "application/json" }), async (req, res) => {
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
   if (!secret) return res.status(500).send("Missing SHOPIFY_WEBHOOK_SECRET");
 
@@ -32,9 +32,12 @@ app.post("/webhooks/orders-create", express.raw({ type: "application/json" }), (
   if (digest !== hmacHeader) return res.status(401).send("Invalid HMAC");
 
   const payload = JSON.parse(req.body.toString("utf8"));
-  console.log("✅ Verified Shopify Order:", payload?.id);
+ console.log("✅ Verified Shopify Order:", payload?.id);
 
-  return res.status(200).send("ok");
+// ✅ Bestellung an InnoCigs senden
+await sendOrderToInnocigs(payload);
+
+return res.status(200).send("ok");
 });
 // Test-Route (Health Check)
 app.get("/health", (req, res) => {
@@ -119,8 +122,36 @@ app.get("/auth/callback", async (req, res) => {
 app.get("/", (req, res) => {
   res.status(200).send("InnoCigs Connector is running 🚀");
 });
+async function sendOrderToInnocigs(order) {
+  try {
+    const res = await fetch(process.env.INNOCIGS_ORDER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.INNOCIGS_API_KEY}`,
+      },
+      body: JSON.stringify({
+        order_id: order.id,
+        customer: {
+          name: order.shipping_address?.name,
+          street: order.shipping_address?.address1,
+          zip: order.shipping_address?.zip,
+          city: order.shipping_address?.city,
+          country: order.shipping_address?.country,
+        },
+        items: (order.line_items || []).map((item) => ({
+          sku: item.sku,
+          quantity: item.quantity,
+        })),
+      }),
+    });
 
-const PORT = process.env.PORT || 10000;
+    const text = await res.text();
+    console.log("📦 InnoCigs Response:", res.status, text);
+  } catch (e) {
+    console.error("❌ InnoCigs Error:", e);
+  }
+}const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
