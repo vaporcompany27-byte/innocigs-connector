@@ -2,6 +2,22 @@ import express from "express";
 import crypto from "crypto";
 
 const app = express();
+
+// Logger (optional, gut zum Debuggen)
+app.use((req, res, next) => {
+  console.log("INCOMING:", req.method, req.path);
+  next();
+});
+
+// Health
+app.get("/health", (req, res) => {
+  res.status(200).json({ ok: true, service: "innocigs-connector" });
+});
+
+// Root
+app.get("/", (req, res) => {
+  res.status(200).send("InnoCigs Connector is running 🚀");
+});
 // Shopify Webhook Endpoint (MUSS VOR express.json() stehen!)
 app.post("/webhooks/orders-create", express.raw({ type: "application/json" }), (req, res) => {
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
@@ -19,10 +35,6 @@ app.post("/webhooks/orders-create", express.raw({ type: "application/json" }), (
   console.log("✅ Verified Shopify Order:", payload?.id);
 
   return res.status(200).send("ok");
-app.use(express.json());
-app.use((req, res, next) =>{
-  console.log("INCOMING:",req.method,req.path);
-  next();
 });
 // Test-Route (Health Check)
 app.get("/health", (req, res) => {
