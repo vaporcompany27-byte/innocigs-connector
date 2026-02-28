@@ -2,8 +2,12 @@ import express from "express";
 import crypto from "crypto";
 
 const app = express();
+const INNOCIGS_CID = process.env.INNOCIGS_CID;
+const INNOCIGS_AUTH = process.env.INNOCIGS_AUTH;
+const INNOCIGS_MODE = (process.env.INNOCIGS_MODE || "order").toLowerCase();
 
-// Logger (optional, gut zum Debuggen)
+const INNOCIGS_ORDER_URL = "https://www.innocigs.com/restapi/order";
+const INNOCIGS_DROPSHIP_URL = "https://www.innocigs.com/restapi/dropship";// Logger (optional, gut zum Debuggen)
 app.use((req, res, next) => {
   console.log("INCOMING:", req.method, req.path);
   next();
@@ -33,8 +37,48 @@ app.post("/webhooks/orders-create", express.raw({ type: "application/json" }), a
 
   const payload = JSON.parse(req.body.toString("utf8"));
  console.log("✅ Verified Shopify Order:", payload?.id);
+if (!INNOCIGS_CID || !INNOCIGS_AUTH) {
+  console.log("❌ Missing INNOCIGS_CID or INNOCIGS_AUTH in Render Environment");
+  return res.status(500).send("Missing INNOCIGS credentials");
+}
 
-// ✅ Bestellung an InnoCigs senden
+const targetUrl = INNOCIGS_MODE === "dropship" ? INNOCIGS_DROPSHIP_URL : INNOCIGS_ORDER_URL;
+
+// 1) Shopify → InnoCigs Order JSON bauen (minimal)
+const orderData = {
+  // WICHTIG: Das hier ist ein MINIMALER Start. Danach erweitern wir es passend zur InnoCigs Doku.
+  ordernumber: String(payload?.id || ""),
+  firstname: payload?.shipping_address?.first_name || "",
+  lastname: payload?.shipping_address?.last_name || "",
+  street: payload?.shipping_address?.address1 || "",
+  zip: payload?.shipping_address?.zip || "",
+  city: payload?.shipping_address?.city || "",
+  country: payload?.shipping_address?.country_code || "DE",
+  email: payload?.email || "",
+  phone: payload?.shipping_address?.phone || payload?.phone || "",
+  items: (payload?.line_items || []).map(i => ({
+    // Das wichtigste: wir brauchen die InnoCigs Artikelnummer/SKU!
+    // Shopify SKU muss mit InnoCigs Artikelnummer übereinstimmen.
+    artnum: i?.sku || "",
+    amount: Number(i?.quantity || 0),
+  })),
+};
+
+// 2) POST an InnoCigs
+const innocigsRes = await fetch(targetUrl, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    // InnoCigs Auth: "cid:passwort"
+    "Auth": `${INNOCIGS_CID}:${INNOCIGS_AUTH}`,
+  },
+  body: JSON.stringify(orderData),
+});
+
+const innocigsText = await innocigsRes.text();
+console.log("📦 InnoCigs response status:", innocigsRes.status);
+console.log("📦 InnoCigs response body:", innocigsText);
+  // ✅ Bestellung an InnoCigs senden
 await sendOrderToInnocigs(payload);
 
 return res.status(200).send("ok");
