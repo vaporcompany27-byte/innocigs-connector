@@ -2,7 +2,7 @@ import express from "express";
 import crypto from "crypto";
 
 const app = express();
-app.use(express.json({ type: "*/*" }));
+app.use(express.json());
 app.use((req, res, next) =>{
   console.log("INCOMING:",req.method,req.path);
   next();
