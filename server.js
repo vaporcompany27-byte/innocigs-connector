@@ -3,7 +3,10 @@ import crypto from "crypto";
 
 const app = express();
 app.use(express.json({ type: "*/*" }));
-
+app.use((req, res, next) =>{
+  console.log("INCOMING:",req.method,req.path);
+  next();
+});
 // Test-Route (Health Check)
 app.get("/health", (req, res) => {
   res.status(200).json({ ok: true, service: "innocigs-connector" });
