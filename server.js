@@ -91,22 +91,24 @@ app.get("/", (req, res) => {
   res.status(200).send("InnoCigs Connector is running 🚀");
 });
 // Shopify Webhook Endpoint
-app.post("/webhooks/orders-create", (req, res) => {
-  const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
-  if (!secret) return res.status(500).send("Missing SHOPIFY_WEBHOOK_SECRET");
-
-  const hmacHeader = req.get("X-Shopify-Hmac-Sha256") || "";
-  const rawBody = JSON.stringify(req.body);
+app.post("/webhooks/orders-create", express.raw({ type: "*/*" }), (req, res) => {
+  const hmacHeader = req.get("X-Shopify-Hmac-Sha256");
+  const secret = process.env.SHOPIFY_API_SECRET;
 
   const digest = crypto
     .createHmac("sha256", secret)
-    .update(rawBody, "utf8")
+    .update(req.body)
     .digest("base64");
 
-  if (digest !== hmacHeader) return res.status(401).send("Invalid HMAC");
+  if (digest !== hmacHeader) {
+    console.log("❌ Invalid HMAC");
+    return res.status(401).send("Invalid HMAC");
+  }
 
-  console.log("✅ Verified Shopify Order:", req.body);
-  res.status(200).send("ok");
+  console.log("✅ Valid webhook received");
+  console.log(req.body.toString());
+
+  res.status(200).send("OK");
 });
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
