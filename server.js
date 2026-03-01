@@ -168,11 +168,11 @@ app.get("/", (req, res) => {
 });
 async function sendOrderToInnocigs(order) {
   try {
-    const res = await fetch(process.env.INNOCIGS_ORDER_URL, {
+    const res = await fetch(INNOCIGS_ORDER_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.INNOCIGS_API_KEY}`,
+        "Auth": `${INNOCIGS_CID}:${INNOCIGS_AUTH}`,
       },
       body: JSON.stringify({
         order_id: order.id,
